@@ -108,6 +108,8 @@ panel. The live Display menu can select `Keep` or `Fill`; fill expands 640x480
 across the panel. All supported inputs are
 near 60 Hz. These are explicit timing profiles, not arbitrary mode detection;
 see the [timing contract](docs/video-registers.md#supported-timing-contract).
+Capture uses the measured sync polarity, with two matching mode/polarity
+samples required before displaying a newly acquired source.
 
 ## Display controls
 

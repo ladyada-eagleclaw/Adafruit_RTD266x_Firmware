@@ -55,9 +55,18 @@ bounded start/pop-up waits. Digital counters were observed to return one less
 than total/active size on this board. The analog vertical count was 524 or 525
 for the same source. The manual pp48–50 documents the fractional horizontal
 measurement as a 16-line average and its four fractional bits in CR56.
-Native/VGA must measure 31.3–31.7 kHz with negative HS/VS. CVT must measure
-29.5–30.0 kHz with negative HS and positive VS, and accepts vertical counter
-endpoints 499 or 500. Matching resolution alone never selects a profile.
+Native/VGA must measure 31.3–31.7 kHz. CVT must measure 29.5–30.0 kHz and
+accepts vertical counter endpoints 499 or 500. Matching resolution alone
+never selects a profile. Each profile accepts all four measured HS/VS
+polarities and normalizes capture from that measurement, rather than a
+fixed polarity in the timing table. A polarity change in the same timing
+profile blanks video and requires two matching samples before reacquisition.
+Host tests cover all twelve mode/polarity combinations and retain the
+geometry, totals, counter and rate rejection checks. Hardware qualification
+of the newly accepted positive-polarity combinations is still pending.
+The 2026-10-07 Metro P4/DDC upload verified every changed flash sector and
+restored write protection. The RTD booted to its no-signal artwork, but the
+post-reset live DDC CRC check failed; video qualification remains pending.
 
 The input-status overlay reports geometry and timing independently of mode
 acceptance. A successful digital measurement retains active dimensions and

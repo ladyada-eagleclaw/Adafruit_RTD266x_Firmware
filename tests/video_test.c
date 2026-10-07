@@ -208,7 +208,6 @@ static void cvt_profile(void) {
   video_signal_t forged;
   uint16_t period;
   uint16_t total;
-  uint8_t polarity;
   uint32_t estimate;
 
   /* Both measured endpoints must configure the physical 500-line frame. */
@@ -284,14 +283,6 @@ static void cvt_profile(void) {
       assert(!signal.width && !signal.height && !signal.output_clock_hz);
     }
   }
-  for (polarity = 0; polarity < 4; ++polarity) {
-    if (polarity == 2)
-      continue;
-    cvt_fixture(14501, 500);
-    measurement[0][2] = 1 | (polarity << 6);
-    assert(!video_measure(&signal) && signal.error == VIDEO_POLARITY);
-    assert(signal.mode == VIDEO_MODE_NONE);
-  }
   for (total = 498; total <= 501; total += 3) {
     cvt_fixture(14501, total);
     assert(!video_measure(&signal) && signal.error == VIDEO_VERTICAL_TOTAL);
@@ -302,11 +293,40 @@ static void cvt_profile(void) {
   assert(signal.detail[0] == 993 && signal.detail[1] == 800);
 }
 
+static void polarity_profiles(void) {
+  video_signal_t signal;
+  uint8_t mode, polarity, saved_control;
+  for (mode = VIDEO_MODE_VGA; mode <= VIDEO_MODE_CVT; ++mode) {
+    for (polarity = 0; polarity < 4; ++polarity) {
+      if (mode == VIDEO_MODE_CVT)
+        cvt_fixture(14501, 500);
+      else
+        fixture(mode == VIDEO_MODE_VGA ? 640 : 800, 13714);
+      measurement[0][2] = (measurement[0][2] & 0x3f) | (polarity << 6);
+      assert(video_measure(&signal) && signal.mode == mode);
+      assert(signal.polarity == polarity);
+      registers[0][0x11] = 0xa3;
+      assert(video_apply(&signal));
+      assert(registers[0][0x11] == (uint8_t)(0xa3 | ((polarity ^ 3) << 2)));
+      /* Re-measure after normalization: the host model supplies raw input
+       * polarity independently of CR11; hardware must confirm that routing. */
+      assert(video_measure(&signal) && signal.polarity == polarity);
+      saved_control = registers[0][0x28];
+      signal.polarity = 4;
+      assert(!video_apply(&signal));
+      signal.polarity = 255;
+      assert(!video_apply(&signal));
+      assert(registers[0][0x28] == saved_control);
+      assert(registers[0][0x11] == (uint8_t)(0xa3 | ((polarity ^ 3) << 2)));
+    }
+  }
+}
+
 static void reject_cases(void) {
   video_signal_t signal;
   static const uint8_t errors[] = {
     VIDEO_GEOMETRY, VIDEO_GEOMETRY, VIDEO_DIGITAL_TOTAL,
-    VIDEO_VERTICAL_TOTAL, VIDEO_POLARITY, VIDEO_POLARITY,
+    VIDEO_VERTICAL_TOTAL,
     VIDEO_ANALOG_OVERFLOW, VIDEO_ANALOG_TIMEOUT, VIDEO_ZERO_PERIOD,
     VIDEO_DIGITAL_OVERFLOW
   };
@@ -318,12 +338,10 @@ static void reject_cases(void) {
       case 1: measurement[1][3] = 224; break;
       case 2: measurement[1][1] = 0; break;
       case 3: measurement[0][3] = 11; break;
-      case 4: measurement[0][2] |= 0x40; break;
-      case 5: measurement[0][2] |= 0x80; break;
-      case 6: measurement[0][0] |= 0x10; break;
-      case 7: measurement[0][2] |= 0x20; break;
-      case 8: fixture(800, 0); break;
-      case 9: measurement[1][0] |= 0x10; break;
+      case 4: measurement[0][0] |= 0x10; break;
+      case 5: measurement[0][2] |= 0x20; break;
+      case 6: fixture(800, 0); break;
+      case 7: measurement[1][0] |= 0x10; break;
     }
     assert(!video_measure(&signal));
     assert(!signal.width && !signal.height && !signal.output_clock_hz);
@@ -331,14 +349,11 @@ static void reject_cases(void) {
     if (i == 0) {
       assert(signal.detail[0] == 1000 && signal.detail[1] == 720 &&
              signal.detail[2] == 480);
-    } else if (i == 4 || i == 5) {
-      assert(signal.detail[0] == 13714 && signal.detail[1] == 524);
-      assert(signal.detail[2] == (i == 4 ? 1 : 2));
     }
-    if (i == 6 || i == 7) {
+    if (i == 4 || i == 5) {
       assert(signal.measured == VIDEO_MEASURE_GEOMETRY);
       assert(!signal.line_hz && !signal.vtotal && !signal.polarity);
-    } else if (i == 9) {
+    } else if (i == 7) {
       assert(!signal.measured && !signal.input_width && !signal.input_height);
       assert(!signal.htotal && !signal.vtotal && !signal.line_hz);
     }
@@ -858,6 +873,7 @@ int main(void) {
   unsupported_metadata();
   clock_range();
   cvt_profile();
+  polarity_profiles();
   reject_cases();
   avmute_recovery();
   picture_controls();

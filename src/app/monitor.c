@@ -41,7 +41,7 @@ static uint8_t input_info_changed(const video_signal_t *signal) {
 
 /* Application policy lives here; register setup belongs to the drivers.
  * Two matching samples acquire a mode. Signal loss blanks immediately.
- * Identify the timing profile as well as width when qualifying a source.
+ * Qualify the timing profile and sync polarity before configuring capture.
  */
 void main(void) {
   /* This state lives for the entire program. Keep it in XRAM: DDC callbacks
@@ -49,6 +49,7 @@ void main(void) {
    * bytes including interrupt context and every active call's local data. */
   static video_signal_t signal;
   static uint8_t displayed_mode = VIDEO_MODE_NONE, candidate_mode = VIDEO_MODE_NONE;
+  static uint8_t displayed_polarity = 0, candidate_polarity = 0;
   static uint8_t matching_samples = 0, screen = 0, audio_tick;
   static uint32_t info_started = 0;
   static uint32_t missing_started = 0, timeout;
@@ -194,10 +195,15 @@ void main(void) {
         displayed_mode = candidate_mode = VIDEO_MODE_NONE;
         matching_samples = 0;
         mcu_write(0xf2, 3);
-      } else if (signal.mode != displayed_mode) {
+      } else if (signal.mode != displayed_mode ||
+                 signal.polarity != displayed_polarity) {
         audio_stop();
-        if (signal.mode != candidate_mode) {
+        video_blank(1);
+        displayed_mode = VIDEO_MODE_NONE;
+        if (signal.mode != candidate_mode ||
+            signal.polarity != candidate_polarity) {
           candidate_mode = signal.mode;
+          candidate_polarity = signal.polarity;
           matching_samples = 1;
         } else if (++matching_samples >= 2) {
           if (video_apply(&signal)) {
@@ -213,6 +219,7 @@ void main(void) {
             info_started = platform_millis();
             screen = control_setting(SET_POPUP) ? 3 : 0;
             displayed_mode = signal.mode;
+            displayed_polarity = signal.polarity;
             mcu_write(0xf2, 4);
           }
           matching_samples = 0;

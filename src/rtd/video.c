@@ -87,13 +87,13 @@ typedef struct {
   uint16_t width, htotal, vtotal;
   uint16_t capture_x, capture_y, display_y;
   uint16_t minimum_line_hz, maximum_line_hz;
-  uint8_t polarity, frame_lines, frame_clocks;
+  uint8_t frame_lines, frame_clocks;
 } input_mode_t;
 
 static const VIDEO_CODE input_mode_t input_modes[] = {
-  {640, 800, 525, 142, 35, 32, 31300, 31700, 0, 5, 44},
-  {800, 1000, 525, 86, 32, 32, 31300, 31700, 0, 2, 40},
-  {800, 992, 500, 166, 17, 10, 29500, 30000, 2, 9, 40}
+  {640, 800, 525, 142, 35, 32, 31300, 31700, 5, 44},
+  {800, 1000, 525, 86, 32, 32, 31300, 31700, 2, 40},
+  {800, 992, 500, 166, 17, 10, 29500, 30000, 9, 40}
 };
 static uint16_t display_vstart;
 static uint16_t picture_width;
@@ -555,10 +555,6 @@ uint8_t video_measure(video_signal_t VIDEO_XDATA *signal) {
   signal->measured |= VIDEO_MEASURE_TIMING;
   if (signal->error)
     return 0;
-  if (polarity != mode->polarity) {
-    signal->error = VIDEO_POLARITY;
-    return 0;
-  }
   if (total != mode->vtotal - 1 && total != mode->vtotal) {
     signal->error = VIDEO_VERTICAL_TOTAL;
     return 0;
@@ -723,7 +719,8 @@ void video_set_aspect(uint8_t mode) {
 uint8_t video_apply(const video_signal_t *signal) {
   const VIDEO_CODE input_mode_t *mode;
 
-  if (!signal || signal->mode < VIDEO_MODE_VGA || signal->mode > VIDEO_MODE_CVT)
+  if (!signal || signal->mode < VIDEO_MODE_VGA || signal->mode > VIDEO_MODE_CVT ||
+      signal->polarity > 3)
     return 0;
   mode = &input_modes[signal->mode - 1];
   if (signal->height != 480 || signal->width != mode->width ||
@@ -739,7 +736,8 @@ uint8_t video_apply(const video_signal_t *signal) {
   rtd_update(0, INPUT, 0x02, 0); /* Sync-relative capture, not DE window. */
   /* Normalize each source's sync pulses before applying its capture window. */
   rtd_update(0, INPUT_POLARITY, 0x0c,
-             (mode->polarity & 1 ? 0 : 0x04) | (mode->polarity & 2 ? 0 : 0x08));
+             (signal->polarity & 1 ? 0 : 0x04) |
+             (signal->polarity & 2 ? 0 : 0x08));
   capture_word(CAPTURE_X, mode->capture_x);
   capture_word(CAPTURE_Y, mode->capture_y);
   capture_word(CAPTURE_WIDTH, signal->width);
