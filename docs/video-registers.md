@@ -62,11 +62,15 @@ polarities and normalizes capture from that measurement, rather than a
 fixed polarity in the timing table. A polarity change in the same timing
 profile blanks video and requires two matching samples before reacquisition.
 Host tests cover all twelve mode/polarity combinations and retain the
-geometry, totals, counter and rate rejection checks. Hardware qualification
-of the newly accepted positive-polarity combinations is still pending.
+geometry, totals, counter and rate rejection checks. On 2026-10-07, the Metro
+P4 and LT8912B produced 800x480 near 60 Hz with H+/V+; camera inspection
+showed color bars and the user confirmed they remained steady. The other
+newly accepted profile/polarity combinations remain unqualified on hardware.
 The 2026-10-07 Metro P4/DDC upload verified every changed flash sector and
 restored write protection. The RTD booted to its no-signal artwork, but the
-post-reset live DDC CRC check failed; video qualification remains pending.
+post-reset live DDC CRC check failed and remains unresolved. Turning the
+adapter DDC switch off and restoring the Metro video sketch produced the
+steady video result above.
 
 The input-status overlay reports geometry and timing independently of mode
 acceptance. A successful digital measurement retains active dimensions and
