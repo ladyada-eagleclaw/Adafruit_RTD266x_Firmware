@@ -83,6 +83,27 @@ estimate by 0.1 Hz. These are measured values, not an EDID mode label.
 The first failed acceptance check supplies the rejection reason. Existing
 trace diagnostic codes and their three detail fields retain their meaning.
 
+## Open bench finding: green-channel banding (2026-10-07)
+
+After the positive-sync fix, the Metro P4/LT8912B source played 800x480
+MJPEG video at 30 fps. The RTD display showed stationary green speckles at
+transitions and a posterized picture. A CPU-generated static RGB888 test,
+bypassing JPEG and SD playback, also showed banding in green and gray ramps;
+blue was smooth and red appeared smoother. The user corrected an initial
+flicker report: the artifacts remained stationary when playback was paused.
+
+Moving the same source and cable to a second monitor, without changing
+firmware or the 960 Mbps DSI link, produced smooth gradients and clean video
+with a readable FPS overlay, confirmed by the user. This isolates the fault
+to the first monitor path; RTD settings/firmware, board circuitry, and panel
+connections remain possible causes. Steady saturated color bars did not
+expose this problem. No fix or exact root cause has been established.
+
+Reproduce with serial `g` in the
+[MetroP4DviVideo demo](https://github.com/adafruit/MBAdafruitBoards/tree/master/Development/Video/LT8912B%20DSI%20DVI/Arduino/MetroP4DviVideo);
+`v` resets back into playback. Investigate channel settings and the green
+data path with these ramps before calling color fidelity qualified.
+
 ## Output clock
 
 Manual pp131–135 describe DPLL divider encoding, charge-pump ratio, fine tuning,
