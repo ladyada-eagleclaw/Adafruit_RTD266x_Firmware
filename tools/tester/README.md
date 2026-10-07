@@ -9,8 +9,10 @@ both sides of the programming connection.
   programming through the same HDMI cable and Adafruit HSTX-to-DVI adapter.
 - [Feather RP2040 DVI](feather_rp2040/Feather_DVI_RTD_Tester/README.md):
   640x480 and 800x480 video patterns, plus flash programming.
+- [Metro P4](metro_p4/README.md): flash programming through the LT8912B
+  adapter's DDC switch while holding that bridge in reset; no video.
 
-Both use `feather_rp2040/Feather_DVI_RTD_Tester/host.py` and the single
+All use `feather_rp2040/Feather_DVI_RTD_Tester/host.py` and the single
 `RTD266xISP.cpp/.h` implementation in that directory. The HSTX sketch includes
 the shared driver through relative wrappers; follow its documented compile
 command. Install the Python dependency with `pip3 install pyserial`.

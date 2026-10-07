@@ -68,8 +68,21 @@ class Client:
 
     def __init__(self, port=None, usb_serial=DEFAULT_SERIAL):
         self.port = select_port(port, usb_serial)
-        self.serial = serial.Serial(self.port, 115200, timeout=0.1,
-                                    write_timeout=2)
+        native_esp_usb = any(p.device.casefold() == self.port.casefold()
+                             and p.vid == 0x303A and p.pid == 0x1001
+                             for p in list_ports.comports())
+        if native_esp_usb:
+            # Native ESP USB Serial/JTAG uses DTR/RTS for reset. Set their
+            # states before opening so reconnecting keeps the programmer alive.
+            self.serial = serial.Serial(port=None, baudrate=115200, timeout=0.1,
+                                        write_timeout=2)
+            self.serial.dtr = False
+            self.serial.rts = False
+            self.serial.port = self.port
+            self.serial.open()
+        else:
+            self.serial = serial.Serial(self.port, 115200, timeout=0.1,
+                                        write_timeout=2)
         self.buffer = bytearray()
         self.synchronized = True
 
